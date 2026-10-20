@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Drawing} from '../../../src/foundation/Drawing';
-import {collectSamples,strokePath} from '../../../src/foundation/ink.mjs';
+import {Drawing} from './foundation/Drawing';
+import {collectSamples,strokePath} from './foundation/ink.mjs';
 import {LiveClient} from './live-client';
 import './live.css';
 /** @param {{classId:string,csrf:string,students?:Array<{id:string,name:string}>}} props */
