@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import { ... } from './shared/document.mjs';
+
 import {applyCommand,validateDocument} from './shared/document.mjs';
 import {Drawing} from './foundation/Drawing.jsx';
 import {collectSamples,strokePath} from './foundation/ink.mjs';
