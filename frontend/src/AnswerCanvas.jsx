@@ -1,6 +1,6 @@
 import React,{useRef,useState} from 'react';
-import {Drawing} from '../../../src/foundation/Drawing';
-import {collectSamples} from '../../../src/foundation/ink.mjs';
+import {Drawing} from './foundation/Drawing';
+import {collectSamples} from './foundation/ink.mjs';
 import './homework.css';
 export default function AnswerCanvas({document,answers,onChange,readOnly=false,assetRoot}){
  const [pageId,setPageId]=useState(document.pages[0].id),[tool,setTool]=useState('stroke'),[color,setColor]=useState('#b91c1c'),[size,setSize]=useState(3),[text,setText]=useState(''),[preview,setPreview]=useState(null);const gesture=useRef();
