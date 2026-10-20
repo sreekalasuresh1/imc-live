@@ -2,7 +2,8 @@ let csrf = '';
 export function setCsrf(value: string) { csrf = value; }
 export class ApiError extends Error { constructor(message: string, public status: number) { super(message); } }
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+  const base = import.meta.env.VITE_API_URL || '';
+  method, credentials: 'include',
     method, credentials: 'same-origin',
     headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(method !== 'GET' ? { 'X-CSRF-Token': csrf } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined,
