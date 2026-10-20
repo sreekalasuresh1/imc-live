@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {api} from './api';
-import {applyCommand,validateDocument} from '../../shared/document.mjs';
+import { ... } from './shared/document.mjs';
+import {applyCommand,validateDocument} from './shared/document.mjs';
 import {Drawing} from './foundation/Drawing.jsx';
 import {collectSamples,strokePath} from './foundation/ink.mjs';
 import {compositeMask} from './foundation/masks.mjs';
