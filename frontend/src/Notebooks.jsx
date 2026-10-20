@@ -1,9 +1,9 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {api} from './api';
-import {applyCommand,validateDocument} from '../../../shared/document.mjs';
-import {Drawing} from '../../../src/foundation/Drawing.jsx';
-import {collectSamples,strokePath} from '../../../src/foundation/ink.mjs';
-import {compositeMask} from '../../../src/foundation/masks.mjs';
+import {applyCommand,validateDocument} from '../../shared/document.mjs';
+import {Drawing} from './foundation/Drawing.jsx';
+import {collectSamples,strokePath} from './foundation/ink.mjs';
+import {compositeMask} from './foundation/masks.mjs';
 import './notebooks.css';
 import {draftStore} from './notebook-drafts';
 
