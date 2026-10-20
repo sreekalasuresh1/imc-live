@@ -1,0 +1,16 @@
+import {useEffect,useState,type FormEvent} from 'react';
+import LiveBoard from './LiveBoard';
+import {flushLive} from './live-client';
+type Joined={classroom_id:string;classroom:string;student:string;expires_at:string;csrf_token:string};
+// Capture before React StrictMode can rerun an initializer, then remove the secret from history.
+const initialCode=new URLSearchParams(location.hash.slice(1)).get('code')||'';
+if(location.pathname==='/join'&&location.hash)history.replaceState(null,'','/join');
+async function request<T>(path:string,body?:unknown,csrf?:string):Promise<T>{const response=await fetch('/api/join/'+path,{method:body===undefined?'GET':'POST',credentials:'same-origin',headers:body===undefined?{}:{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':csrf}:{})},body:body===undefined?undefined:JSON.stringify(body)});if(!response.ok){const error=await response.json().catch(()=>({}));throw Object.assign(Error(typeof error.detail==='string'?error.detail:'Unable to join. Check the invitation and try again.'),{status:response.status});}return response.status===204?undefined as T:response.json();}
+export default function Join(){
+ const [code,setCode]=useState(initialCode),[joined,setJoined]=useState<Joined>(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[checking,setChecking]=useState(true);
+ useEffect(()=>{request<Joined>('session').then(setJoined).catch(()=>{}).finally(()=>setChecking(false));},[]);
+ useEffect(()=>{if(!joined)return;let live=true;const check=()=>request<Joined>('session').then(s=>{if(live)setJoined(s);}).catch(e=>{if(live){setError(e.status===401?'Classroom access has ended. Download any unsent writing before leaving.':e.message);}});const timer=setInterval(check,10000);window.addEventListener('focus',check);return()=>{live=false;clearInterval(timer);window.removeEventListener('focus',check);};},[joined?.classroom_id]);
+ async function submit(e:FormEvent){e.preventDefault();setBusy(true);setError('');try{setJoined(await request<Joined>('redeem',{code}));setCode('');}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+ async function leave(){setBusy(true);try{await flushLive(joined?.classroom_id);await request('leave',{},joined?.csrf_token);setJoined(undefined);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+ return <main className="join-page"><h1>MY CLASSROOM</h1>{checking?<p>Checking classroom access…</p>:joined?<><h2>You're in, {joined.student}</h2><p>{joined.classroom}</p><p>Your classroom access lasts until {new Date(joined.expires_at).toLocaleString()} unless your teacher ends it sooner.</p><LiveBoard classId={joined.classroom_id} csrf={joined.csrf_token}/><button className="secondary" disabled={busy} onClick={leave}>Leave classroom</button></>:<><h2>Join your class</h2><p>Use the invitation from your teacher. No account password is needed.</p><form onSubmit={submit}><label>Class code<input value={code} onChange={e=>setCode(e.target.value)} maxLength={80} autoComplete="off" autoCapitalize="characters" spellCheck={false} required/></label><button className="primary" disabled={busy||!code.trim()}>Join classroom</button></form></>}{error&&<p className="error" role="alert">{error}</p>}<p><a href="/">Return to account sign-in</a></p></main>;
+}

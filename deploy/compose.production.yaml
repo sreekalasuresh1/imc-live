@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:17-alpine
+    env_file: ../.env
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  api:
+    build: ../backend
+    env_file: ../.env
+    environment:
+      ENVIRONMENT: production
+      COOKIE_SECURE: 'true'
+      STORAGE_PATH: /data/storage
+      FORWARDED_ALLOW_IPS: ${CLASSROOM_NETWORK_CIDR:-172.30.17.0/24}
+    volumes:
+      - files:/data/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  web:
+    environment:
+      TRUSTED_PROXY_CIDR: ${CLASSROOM_NETWORK_CIDR:-172.30.17.0/24}
+      CLASSROOM_DOMAIN: ${CLASSROOM_DOMAIN:?Set CLASSROOM_DOMAIN}
+    build:
+      context: ../..
+      dockerfile: my-classroom/frontend/Dockerfile
+    depends_on:
+      - api
+    restart: unless-stopped
+  edge:
+    image: caddy:2-alpine
+    environment:
+      CLASSROOM_DOMAIN: ${CLASSROOM_DOMAIN:?Set CLASSROOM_DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+volumes:
+  database:
+  files:
+  certificates:
+  caddy_config:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${CLASSROOM_NETWORK_CIDR:-172.30.17.0/24}

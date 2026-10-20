@@ -1,0 +1,22 @@
+import React,{useRef,useState} from 'react';
+import {Drawing} from '../../../src/foundation/Drawing';
+import {collectSamples} from '../../../src/foundation/ink.mjs';
+import './homework.css';
+
+export default function CorrectionCanvas({document,body,onChange,readOnly=false,assetRoot,onGesture=()=>{}}){
+ const [pageId,setPageId]=useState(document.pages[0].id),[tool,setTool]=useState('stroke'),[color,setColor]=useState('#c02626'),[size,setSize]=useState(3),[text,setText]=useState(''),[preview,setPreview]=useState([]);const gesture=useRef();
+ const page=document.pages.find(p=>p.id===pageId)||document.pages[0],layer=body.pages.find(p=>p.id===page.id);
+ function change(objects){onChange({...body,pages:body.pages.map(p=>p.id===page.id?{...p,objects}:p)});}
+ function samples(e){return collectSamples(e.nativeEvent,e.currentTarget.getBoundingClientRect()).map(p=>p.slice(0,3));}
+ function arrow(o){const x=o.x+o.width,y=o.y+o.height,a=Math.atan2(o.height,o.width),n=12+o.size;return [o,...[-.5,.5].map(offset=>({...o,id:crypto.randomUUID(),x,y,width:-n*Math.cos(a+offset),height:-n*Math.sin(a+offset)}))];}
+ function down(e){if(readOnly||e.button!==0||gesture.current)return;
+  if(tool==='eraser'){const id=e.target.closest('[data-correction-id]')?.getAttribute('data-correction-id');if(id)change(layer.objects.filter(o=>o.id!==id));return;}
+  const points=samples(e),[x,y]=points[0],base={id:crypto.randomUUID(),type:tool==='arrow'?'line':tool,color,size};
+  if(tool==='text'){if(text.trim())change([...layer.objects,{...base,size:20,x,y,width:0,height:0,text:text.trim()}]);return;}
+  const object=['stroke','highlighter'].includes(tool)?{...base,points,inputType:e.pointerType==='pen'?'pen':'mouse'}:{...base,x,y,width:0,height:0};gesture.current={pointer:e.pointerId,object,arrow:tool==='arrow'};e.currentTarget.setPointerCapture(e.pointerId);onGesture(true);setPreview([structuredClone(object)]);
+ }
+ function move(e){const g=gesture.current;if(!g||g.pointer!==e.pointerId)return;const points=samples(e),[x,y]=points.at(-1);if(g.object.points)g.object.points.push(...points.slice(0,50000-g.object.points.length));else{g.object.width=x-g.object.x;g.object.height=y-g.object.y;}setPreview(g.arrow?arrow(g.object):[structuredClone(g.object)]);}
+ function end(e){const g=gesture.current;if(!g||g.pointer!==e.pointerId)return;gesture.current=null;onGesture(false);setPreview([]);change([...layer.objects,...(g.arrow?arrow(g.object):[g.object])]);}
+ function drawing(o){return o.type==='image'?<image key={o.id} href={assetRoot+'/'+o.assetId} x={o.x} y={o.y} width={o.width} height={o.height} preserveAspectRatio="none" transform={`rotate(${o.rotation} ${o.x+o.width/2} ${o.y+o.height/2})`}/>:<Drawing key={o.id+JSON.stringify(o)} object={o}/>;}
+ return <section><div className="hw-tools"><label>Page<select aria-label="Correction page" disabled={!!preview.length} value={page.id} onChange={e=>setPageId(e.target.value)}>{document.pages.map((p,i)=><option key={p.id} value={p.id}>Page {i+1}</option>)}</select></label>{!readOnly&&<><label>Correction tool<select aria-label="Correction tool" disabled={!!preview.length} value={tool} onChange={e=>setTool(e.target.value)}>{[['stroke','Pen'],['highlighter','Highlighter'],['ellipse','Circle / ellipse'],['arrow','Arrow'],['text','Text / explanation'],['line','Line'],['rectangle','Rectangle'],['eraser','Correction eraser']].map(([t,label])=><option key={t} value={t}>{label}</option>)}</select></label><label>Ink color<input aria-label="Correction color" type="color" value={color} onChange={e=>setColor(e.target.value)}/></label><label>Width<input aria-label="Correction width" type="range" min="1" max="12" value={size} onChange={e=>setSize(+e.target.value)}/></label>{tool==='text'&&<label>Explanation text<input aria-label="Correction text" maxLength={2000} value={text} onChange={e=>setText(e.target.value)}/></label>}<button disabled={!!preview.length||!layer.objects.length} onClick={()=>change(layer.objects.slice(0,-1))}>Undo last correction object</button></>}</div><div className="hw-paper"><svg aria-label="Correction page canvas" viewBox="0 0 900 1273" style={{touchAction:readOnly?'pan-y':'none'}} onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end}><g data-original="true" pointerEvents="none">{page.objects.map(drawing)}</g><g>{layer.objects.map(o=><g key={o.id} data-correction-id={o.id}>{drawing(o)}</g>)}</g>{preview.map(drawing)}</svg></div></section>;
+}
