@@ -8,3 +8,5 @@ pydantic-settings==2.14.2
 Pillow==12.3.0
 qrcode==8.2
 psycopg2-binary==2.9.10
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
