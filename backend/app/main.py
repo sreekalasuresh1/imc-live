@@ -48,3 +48,21 @@ app.include_router(corrections.router, prefix='/api')
 app.include_router(parents.router, prefix='/api')
 app.include_router(batches.router, prefix='/api')
 
+
+@app.get("/create-first-teacher")
+def create_first_teacher():
+    from .db import SessionLocal
+    from .models import User
+    from passlib.context import CryptContext
+    db = SessionLocal()
+    existing = db.query(User).filter(User.username == "teacher").first()
+    if existing:
+        db.close()
+        return {"message": "teacher already exists - you can login now!"}
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed = pwd_context.hash("Teacher@123")
+    u = User(username="teacher", hashed_password=hashed, role="teacher")
+    db.add(u)
+    db.commit()
+    db.close()
+    return {"message": "Created! Login with teacher / Teacher@123"}
