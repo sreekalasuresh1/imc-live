@@ -53,19 +53,17 @@ app.include_router(batches.router, prefix='/api')
 def create_first_teacher():
     from .db import SessionLocal
     from sqlalchemy import text
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    db = SessionLocal()
-    hashed = pwd_context.hash("Teacher@123")
+    import traceback
     try:
-        db.execute(text("INSERT INTO users (username, hashed_password, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
-    except:
-        db.rollback()
-        try:
-            db.execute(text("INSERT INTO users (username, password_hash, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
-        except:
-            db.rollback()
-            db.execute(text("INSERT INTO users (username, password, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
-    db.commit()
-    db.close()
-    return {"success": True, "message": "Created teacher / Teacher@123"}
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        hashed = pwd_context.hash("Teacher@123")
+        db = SessionLocal()
+        db.execute(text("DELETE FROM users WHERE username='teacher'"))
+        db.commit()
+        db.execute(text("INSERT INTO users (username, password, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
+        db.commit()
+        db.close()
+        return {"success": True, "message": "Created teacher / Teacher@123 - you can login now"}
+    except Exception as e:
+        return {"success": False, "error": str(e), "trace": traceback.format_exc()}
