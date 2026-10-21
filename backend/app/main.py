@@ -51,18 +51,32 @@ app.include_router(batches.router, prefix='/api')
 
 @app.get("/create-first-teacher")
 def create_first_teacher():
-    from .db import SessionLocal
-    from .models import User
-    from passlib.context import CryptContext
-    db = SessionLocal()
-    existing = db.query(User).filter(User.username == "teacher").first()
-    if existing:
+    import traceback
+    try:
+        from .db import SessionLocal
+        from sqlalchemy import text
+        from passlib.context import CryptContext
+        db = SessionLocal()
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        hashed = pwd_context.hash("Teacher@123")
+        # get columns to know exact field name
+        cols = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='users'"))
+        col_list = [c[0] for c in cols.fetchall()]
+        check = db.execute(text("SELECT * FROM users WHERE username='teacher'"))
+        if check.fetchone():
+            db.close()
+            return {"message": "teacher already exists - try login!", "columns": col_list}
+        try:
+            db.execute(text("INSERT INTO users (username, hashed_password, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
+        except:
+            db.rollback()
+            try:
+                db.execute(text("INSERT INTO users (username, password_hash, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
+            except:
+                db.rollback()
+                db.execute(text("INSERT INTO users (username, password, role) VALUES ('teacher', :h, 'teacher')"), {"h": hashed})
+        db.commit()
         db.close()
-        return {"message": "teacher already exists - you can login now!"}
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    hashed = pwd_context.hash("Teacher@123")
-    u = User(username="teacher", hashed_password=hashed, role="teacher")
-    db.add(u)
-    db.commit()
-    db.close()
-    return {"message": "Created! Login with teacher / Teacher@123"}
+        return {"success": True, "message": "Created teacher / Teacher@123", "columns": col_list}
+    except Exception as e:
+        return {"error": str(e), "trace": traceback.format_exc()}
