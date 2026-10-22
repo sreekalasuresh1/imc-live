@@ -4,6 +4,11 @@ import time
 from datetime import timedelta
 from fastapi import Depends, HTTPException, Request
 from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
+from passlib.context import CryptContext
+
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 from .db import get_db
@@ -12,7 +17,8 @@ from .security_models import SecurityRate
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-passwords = PasswordHash.recommended()
+passwords = PasswordHash((Argon2Hasher(), BcryptHasher()))
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 DUMMY_HASH = passwords.hash(secrets.token_urlsafe(32))
 COOKIE = 'classroom_session'
 
@@ -23,9 +29,16 @@ def digest(value: str) -> str:
 def valid_csrf(value,expected):
     return isinstance(value,str) and value.isascii() and secrets.compare_digest(value,expected)
 
-
 def verify_password(raw, hashed):
-    return passwords.verify(raw, hashed)
+    try:
+        return passwords.verify(raw, hashed)
+    except Exception:
+        try:
+            return pwd_context.verify(raw, hashed)
+        except Exception:
+            return False
+
+    
 
 
 def rate_limit(db: Session, key: str, limit: int = 10):
