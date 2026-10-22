@@ -61,7 +61,7 @@ def create_first_teacher():
         db = SessionLocal()
         db.execute(text("DELETE FROM users WHERE username='teacher'"))
         db.commit()
-        db.execute(text("INSERT INTO users (username, name, password_hash, role, active) VALUES ('teacher', 'teacher', :h, 'TEACHER', true)"), {"h": hashed})
+        db.execute(text("INSERT INTO users (id, username, name, password_hash, role, active) VALUES (gen_random_uuid(), 'teacher', 'teacher', :h, 'TEACHER', true)"), {"h": hashed})
         db.commit()
         db.close()
         return {"success": True, "message": "Created teacher / Teacher@123 - you can login now"}
