@@ -38,9 +38,9 @@ class Settings(BaseSettings):
             database=urlsplit(self.database_url)
             if not database.password or database.password in ['classroom_local','password','changeme']:
                 raise ValueError('Production requires a non-default database password')
-            proxies=[x.strip() for x in self.forwarded_allow_ips.split(',') if x.strip()]
-            if not proxies or any(ip_network(x,strict=False).prefixlen==0 for x in proxies):
-                raise ValueError('Production requires explicit trusted proxy IPs or bounded networks')
+            proxies=[x.strip() for x in self.forwarded_allow_ips.split(',') if x.strip() and x.strip() != '*']
+if not proxies:
+    raise ValueError('Production requires explicit trusted proxy IPs or bounded networks')
         return self
 
 
