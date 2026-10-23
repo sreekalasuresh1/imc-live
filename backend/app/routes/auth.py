@@ -29,7 +29,7 @@ def login(body: Login, request: Request, response: Response, db: Session = Depen
     db.add(session)
     user.last_login_at = now()
     db.commit()
-    response.set_cookie(COOKIE, token, httponly=True, secure=settings.cookie_secure, samesite='lax', max_age=settings.session_hours * 3600, path='/api')
+    response.set_cookie(COOKIE, token, httponly=True, secure=True, samesite='none', max_age=settings.session_hours * 3600, path='/')
     return {'user': public_user(user), 'csrf_token': session.csrf_token}
 
 
@@ -42,7 +42,7 @@ def me(request: Request, user: User = Depends(authenticated)):
 def logout(request: Request, response: Response, user: User = Depends(authenticated), db: Session = Depends(get_db)):
     db.delete(request.state.session)
     db.commit()
-    response.delete_cookie(COOKIE, path='/api', secure=settings.cookie_secure, httponly=True, samesite='lax')
+    response.delete_cookie(COOKIE, path='/', secure=True, httponly=True, samesite='none')
 
 
 @router.post('/password', status_code=204)
